@@ -23,12 +23,12 @@ extern "C"
             if (imu.whoami(id) == ESP_OK)
                 ESP_LOGI(TAG, "MPU WHO_AM_I = 0x%02X", id);
 
-            int16_t ax, ay, az, gx, gy, gz;
+            float ax, ay, az, gx, gy, gz;
             float temp;
             if (imu.readAccelerometer(ax, ay, az) == ESP_OK)
-                ESP_LOGI(TAG, "Accel: %d %d %d", ax, ay, az);
+                ESP_LOGI(TAG, "Accel: [%.2f, %.2f, %.2f] g", ax, ay, az);
             if (imu.readGyroscope(gx, gy, gz) == ESP_OK)
-                ESP_LOGI(TAG, "Gyro: %d %d %d", gx, gy, gz);
+                ESP_LOGI(TAG, "Gyro: [%.2f, %.2f, %.2f] °/s", gx, gy, gz);
             if (imu.readTemperatureC(temp) == ESP_OK)
                 ESP_LOGI(TAG, "Temp: %.2f C", temp);
         }

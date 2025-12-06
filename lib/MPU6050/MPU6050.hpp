@@ -12,11 +12,14 @@ public:
 
     esp_err_t whoami(uint8_t &id);
 
-    esp_err_t readAccelerometer(int16_t &ax, int16_t &ay, int16_t &az);
-    esp_err_t readGyroscope(int16_t &gx, int16_t &gy, int16_t &gz);
+    esp_err_t readAccelerometerRaw(int16_t &raw_ax, int16_t &raw_ay, int16_t &raw_az);
+    esp_err_t readAccelerometer(float &ax, float &ay, float &az);
 
-    esp_err_t readTemperatureRaw(int16_t &raw);
-    esp_err_t readTemperatureC(float &temp_c);
+    esp_err_t readGyroscopeRaw(int16_t &raw_gx, int16_t &raw_gy, int16_t &raw_gz);
+    esp_err_t readGyroscope(float &gx, float &gy, float &gz);
+
+    esp_err_t readTemperatureRaw(int16_t &raw_temp);
+    esp_err_t readTemperatureC(float &temp);
 
 private:
     I2CInterface &i2c;
