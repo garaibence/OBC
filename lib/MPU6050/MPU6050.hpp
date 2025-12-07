@@ -21,6 +21,9 @@ public:
     esp_err_t readTemperatureRaw(int16_t &raw_temp);
     esp_err_t readTemperatureC(float &temp);
 
+    esp_err_t readConfig(uint8_t &conf);
+    esp_err_t writeConfig(uint8_t conf);
+
 private:
     I2CInterface &i2c;
     uint8_t addr;
@@ -29,4 +32,5 @@ private:
     static constexpr uint8_t REG_ACCEL_XOUT_H = 0x3B;
     static constexpr uint8_t REG_TEMP_OUT_H = 0x41;
     static constexpr uint8_t REG_GYRO_XOUT_H = 0x43;
+    static constexpr uint8_t REG_CONFIG = 0x1A;
 };

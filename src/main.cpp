@@ -23,6 +23,20 @@ extern "C"
             if (imu.whoami(id) == ESP_OK)
                 ESP_LOGI(TAG, "MPU WHO_AM_I = 0x%02X", id);
 
+            uint8_t data;
+            if (imu.readConfig(data) == ESP_OK)
+                ESP_LOGI(TAG, "Config: 0x%02X", data);
+            
+            data |= 6;
+
+            if (imu.writeConfig(data) == ESP_OK)
+                ESP_LOGI(TAG, "Config 0x%02X written.", data);
+            
+            data = 0;
+
+            if (imu.readConfig(data) == ESP_OK)
+                ESP_LOGI(TAG, "Config: 0x%02X", data);
+
             float ax, ay, az, gx, gy, gz;
             float temp;
             if (imu.readAccelerometer(ax, ay, az) == ESP_OK)
