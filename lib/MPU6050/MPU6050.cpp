@@ -1,8 +1,5 @@
 #include "MPU6050.hpp"
-#include <cstring>
-
-static auto be16 = [](const uint8_t *b) -> int16_t
-{ return (int16_t)((b[0] << 8) | b[1]); };
+#include "ByteUtils.hpp"
 
 esp_err_t MPU6050::init()
 {
@@ -59,7 +56,7 @@ esp_err_t MPU6050::readGyroscope(float &gx, float &gy, float &gz)
     esp_err_t err = readGyroscopeRaw(raw_gx, raw_gy, raw_gz);
     if (err != ESP_OK)
         return err;
-    
+
     // rot = raw / 131
     gx = raw_gx / 131.0f;
     gy = raw_gy / 131.0f;
@@ -86,4 +83,14 @@ esp_err_t MPU6050::readTemperatureC(float &temp)
     // temp = (raw / 340) + 36.53
     temp = raw / 340.0f + 36.53f;
     return ESP_OK;
+}
+
+esp_err_t MPU6050::readConfig(uint8_t &conf)
+{
+    return i2c.readRegister(addr, REG_CONFIG, conf);
+}
+
+esp_err_t MPU6050::writeConfig(uint8_t conf)
+{
+    return i2c.writeRegister(addr, REG_CONFIG, conf);
 }
