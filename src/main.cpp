@@ -22,6 +22,9 @@ extern "C"
 
         if (imu.init() == ESP_OK && bmp.init() == ESP_OK)
         {
+            imu.setAccelRange(AccelRange::RANGE_16G);
+            imu.setDlpfBandwidth(DlpfBandwidth::BW_5HZ);
+            imu.setGyroRange(GyroRange::RANGE_1000_DEG);
             bmp.setOversampling(Oversampling::OSS_3);
             float ax, ay, az, gx, gy, gz, temp_mpu;
             float temp_bmp, pressure, altitude;
