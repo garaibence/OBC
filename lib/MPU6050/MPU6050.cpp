@@ -4,12 +4,92 @@
 esp_err_t MPU6050::init()
 {
     uint8_t wake = 0x00;
-    return i2c.writeRegister(addr, REG_PWR_MGMT_1, wake);
+    esp_err_t err = i2c.writeRegister(addr, REG_PWR_MGMT_1, wake);
+    if (err != ESP_OK)
+        return err;
+    return ESP_OK;
 }
 
 esp_err_t MPU6050::whoami(uint8_t &id)
 {
     return i2c.readRegister(addr, REG_WHO_AM_I, id);
+}
+
+esp_err_t MPU6050::setDlpfBandwidth(DlpfBandwidth bw)
+{
+    uint8_t current_conf;
+    esp_err_t err = i2c.readRegister(addr, REG_CONFIG, current_conf);
+    if (err != ESP_OK)
+        return err;
+
+    current_conf &= 0xF8;
+    current_conf |= static_cast<uint8_t>(bw);
+
+    return i2c.writeRegister(addr, REG_CONFIG, current_conf);
+}
+
+esp_err_t MPU6050::setGyroRange(GyroRange range)
+{
+    uint8_t current_conf;
+    esp_err_t err = i2c.readRegister(addr, REG_GYRO_CONFIG, current_conf);
+    if (err != ESP_OK)
+        return err;
+
+    current_conf &= ~0x18;
+    current_conf |= (static_cast<uint8_t>(range) << 3);
+
+    err = i2c.writeRegister(addr, REG_GYRO_CONFIG, current_conf);
+    if (err != ESP_OK)
+        return err;
+
+    switch (range)
+    {
+    case GyroRange::RANGE_250_DEG:
+        gyro_lsb_sensitivity = 131.0f;
+        break;
+    case GyroRange::RANGE_500_DEG:
+        gyro_lsb_sensitivity = 65.5f;
+        break;
+    case GyroRange::RANGE_1000_DEG:
+        gyro_lsb_sensitivity = 32.8f;
+        break;
+    case GyroRange::RANGE_2000_DEG:
+        gyro_lsb_sensitivity = 16.4f;
+        break;
+    }
+    return ESP_OK;
+}
+
+esp_err_t MPU6050::setAccelRange(AccelRange range)
+{
+    uint8_t current_conf;
+    esp_err_t err = i2c.readRegister(addr, REG_ACCEL_CONFIG, current_conf);
+    if (err != ESP_OK)
+        return err;
+
+    current_conf &= ~0x18;
+    current_conf |= (static_cast<uint8_t>(range) << 3);
+
+    err = i2c.writeRegister(addr, REG_ACCEL_CONFIG, current_conf);
+    if (err != ESP_OK)
+        return err;
+
+    switch (range)
+    {
+    case AccelRange::RANGE_2G:
+        accel_lsb_sensitivity = 16384.0f;
+        break;
+    case AccelRange::RANGE_4G:
+        accel_lsb_sensitivity = 8192.0f;
+        break;
+    case AccelRange::RANGE_8G:
+        accel_lsb_sensitivity = 4096.0f;
+        break;
+    case AccelRange::RANGE_16G:
+        accel_lsb_sensitivity = 2048.0f;
+        break;
+    }
+    return ESP_OK;
 }
 
 esp_err_t MPU6050::readAccelerometerRaw(int16_t &raw_ax, int16_t &raw_ay, int16_t &raw_az)
@@ -31,10 +111,9 @@ esp_err_t MPU6050::readAccelerometer(float &ax, float &ay, float &az)
     if (err != ESP_OK)
         return err;
 
-    // accel = raw / 16384
-    ax = raw_ax / 16384.0f;
-    ay = raw_ay / 16384.0f;
-    az = raw_az / 16384.0f;
+    ax = raw_ax / accel_lsb_sensitivity;
+    ay = raw_ay / accel_lsb_sensitivity;
+    az = raw_az / accel_lsb_sensitivity;
     return ESP_OK;
 }
 
@@ -57,10 +136,9 @@ esp_err_t MPU6050::readGyroscope(float &gx, float &gy, float &gz)
     if (err != ESP_OK)
         return err;
 
-    // rot = raw / 131
-    gx = raw_gx / 131.0f;
-    gy = raw_gy / 131.0f;
-    gz = raw_gz / 131.0f;
+    gx = raw_gx / gyro_lsb_sensitivity;
+    gy = raw_gy / gyro_lsb_sensitivity;
+    gz = raw_gz / gyro_lsb_sensitivity;
     return ESP_OK;
 }
 
@@ -80,7 +158,6 @@ esp_err_t MPU6050::readTemperatureC(float &temp)
     esp_err_t err = readTemperatureRaw(raw);
     if (err != ESP_OK)
         return err;
-    // temp = (raw / 340) + 36.53
     temp = raw / 340.0f + 36.53f;
     return ESP_OK;
 }
