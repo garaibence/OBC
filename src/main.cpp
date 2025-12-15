@@ -1,5 +1,6 @@
 #include "I2CInterface.hpp"
 #include "MPU6050.hpp"
+#include "BMP180.hpp"
 #include <esp_log.h>
 
 extern "C"
@@ -17,37 +18,42 @@ extern "C"
         }
 
         MPU6050 imu(i2c, 0x68);
-        if (imu.init() == ESP_OK)
+        BMP180 bmp(i2c, 0x77);
+
+        if (imu.init() == ESP_OK && bmp.init() == ESP_OK)
         {
-            uint8_t id;
-            if (imu.whoami(id) == ESP_OK)
-                ESP_LOGI(TAG, "MPU WHO_AM_I = 0x%02X", id);
+            bmp.setOversampling(Oversampling::OSS_3);
+            float ax, ay, az, gx, gy, gz, temp_mpu;
+            float temp_bmp, pressure, altitude;
+            while (true)
+            {
+                if (imu.readAccelerometer(ax, ay, az) == ESP_OK)
+                {
+                    printf(">ax:%f§m/s²\n", ax);
+                    printf(">ay:%f§m/s²\n", ay);
+                    printf(">az:%f§m/s²\n", az);
+                }
 
-            uint8_t data;
-            if (imu.readConfig(data) == ESP_OK)
-                ESP_LOGI(TAG, "Config: 0x%02X", data);
-            
-            data |= 6;
+                if (imu.readGyroscope(gx, gy, gz) == ESP_OK)
+                {
+                    printf(">gx:%f§°/s\n", gx);
+                    printf(">gy:%f§°/s\n", gy);
+                    printf(">gz:%f§°/s\n", gz);
+                }
 
-            if (imu.writeConfig(data) == ESP_OK)
-                ESP_LOGI(TAG, "Config 0x%02X written.", data);
-            
-            data = 0;
+                if (imu.readTemperatureC(temp_mpu) == ESP_OK)
+                    printf(">temp_mpu:%f§°C\n", temp_mpu);
 
-            if (imu.readConfig(data) == ESP_OK)
-                ESP_LOGI(TAG, "Config: 0x%02X", data);
+                if (bmp.readTemperature(temp_bmp) == ESP_OK)
+                    printf(">temp_bmp:%f§°C\n", temp_bmp);
 
-            float ax, ay, az, gx, gy, gz;
-            float temp;
-            if (imu.readAccelerometer(ax, ay, az) == ESP_OK)
-                ESP_LOGI(TAG, "Accel: [%.2f, %.2f, %.2f] g", ax, ay, az);
-            if (imu.readGyroscope(gx, gy, gz) == ESP_OK)
-                ESP_LOGI(TAG, "Gyro: [%.2f, %.2f, %.2f] °/s", gx, gy, gz);
-            if (imu.readTemperatureC(temp) == ESP_OK)
-                ESP_LOGI(TAG, "Temp: %.2f C", temp);
+                if (bmp.readPressure(pressure) == ESP_OK)
+                    printf(">pressure:%f§Pa\n", pressure);
+
+                if (bmp.readAltitude(altitude) == ESP_OK)
+                    printf(">altitude:%f§m\n", altitude);
+            }
         }
-        else
-            ESP_LOGW(TAG, "MPU init failed");
 
         i2c.deinit();
     }
