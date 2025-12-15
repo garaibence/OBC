@@ -18,9 +18,9 @@ esp_err_t MPU6050::readAccelerometerRaw(int16_t &raw_ax, int16_t &raw_ay, int16_
     esp_err_t err = i2c.readRegisters(addr, REG_ACCEL_XOUT_H, buf, sizeof(buf));
     if (err != ESP_OK)
         return err;
-    raw_ax = be16(&buf[0]);
-    raw_ay = be16(&buf[2]);
-    raw_az = be16(&buf[4]);
+    raw_ax = be16s(&buf[0]);
+    raw_ay = be16s(&buf[2]);
+    raw_az = be16s(&buf[4]);
     return ESP_OK;
 }
 
@@ -44,9 +44,9 @@ esp_err_t MPU6050::readGyroscopeRaw(int16_t &raw_gx, int16_t &raw_gy, int16_t &r
     esp_err_t err = i2c.readRegisters(addr, REG_GYRO_XOUT_H, buf, sizeof(buf));
     if (err != ESP_OK)
         return err;
-    raw_gx = be16(&buf[0]);
-    raw_gy = be16(&buf[2]);
-    raw_gz = be16(&buf[4]);
+    raw_gx = be16s(&buf[0]);
+    raw_gy = be16s(&buf[2]);
+    raw_gz = be16s(&buf[4]);
     return ESP_OK;
 }
 
@@ -70,7 +70,7 @@ esp_err_t MPU6050::readTemperatureRaw(int16_t &raw_temp)
     esp_err_t err = i2c.readRegisters(addr, REG_TEMP_OUT_H, buf, sizeof(buf));
     if (err != ESP_OK)
         return err;
-    raw_temp = be16(&buf[0]);
+    raw_temp = be16s(&buf[0]);
     return ESP_OK;
 }
 
