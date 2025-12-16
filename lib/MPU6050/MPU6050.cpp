@@ -171,3 +171,28 @@ esp_err_t MPU6050::writeConfig(uint8_t conf)
 {
     return i2c.writeRegister(addr, REG_CONFIG, conf);
 }
+
+esp_err_t MPU6050::setI2CBypass(bool enable)
+{
+    uint8_t current_user_ctrl;
+    esp_err_t err = i2c.readRegister(addr, REG_USER_CTRL, current_user_ctrl);
+    if (err != ESP_OK)
+        return err;
+
+    current_user_ctrl &= ~(1 << 5);
+    err = i2c.writeRegister(addr, REG_USER_CTRL, current_user_ctrl);
+    if (err != ESP_OK)
+        return err;
+
+    uint8_t current_int_cfg;
+    err = i2c.readRegister(addr, REG_INT_PIN_CFG, current_int_cfg);
+    if (err != ESP_OK)
+        return err;
+
+    if (enable)
+        current_int_cfg |= (1 << 1);
+    else
+        current_int_cfg &= ~(1 << 1);
+
+    return i2c.writeRegister(addr, REG_INT_PIN_CFG, current_int_cfg);
+}
