@@ -52,6 +52,8 @@ public:
     esp_err_t readTemperatureRaw(int16_t &raw_temp);
     esp_err_t readTemperatureC(float &temp);
 
+    esp_err_t setI2CBypass(bool bypass);
+
 private:
     esp_err_t readConfig(uint8_t &conf);
     esp_err_t writeConfig(uint8_t conf);
@@ -65,6 +67,8 @@ private:
     static constexpr uint8_t REG_CONFIG = 0x1A;
     static constexpr uint8_t REG_GYRO_CONFIG = 0x1B;
     static constexpr uint8_t REG_ACCEL_CONFIG = 0x1C;
+    static constexpr uint8_t REG_INT_PIN_CFG = 0x37;
+    static constexpr uint8_t REG_USER_CTRL = 0x6A;
 
     static constexpr uint8_t REG_PWR_MGMT_1 = 0x6B;
     static constexpr uint8_t REG_WHO_AM_I = 0x75;
