@@ -1,197 +1,103 @@
-#include "SPIInterface.hpp"
 #include "SD.hpp"
-#include <cstdint>
-#include <esp_err.h>
-#include <esp_log.h>
-#include <cstring>
+#include "esp_log.h"
+#include <cstdio>
 
 static const char *TAG = "SD";
 
-// SD Card Commands
-#define CMD0  0   // GO_IDLE_STATE
-#define CMD1  1   // SEND_OP_COND
-#define CMD8  8   // SEND_IF_COND
-#define CMD16 16  // SET_BLOCKLEN
-#define CMD17 17  // READ_SINGLE_BLOCK
-#define CMD24 24  // WRITE_SINGLE_BLOCK
-#define CMD55 55  // APP_CMD
-#define CMD58 58  // READ_OCR
-#define ACMD41 41 // SD_SEND_OP_COND
-
-#define SD_BLOCK_SIZE 512
-#define SD_INIT_TIMEOUT_MS 1000
-
-SD::SD(SPIInterface *spi)
-    : spi(spi), initialized(false), card_size(0)
-{
-}
+SD::SD(SPIInterface &spi, const char *mount_point, int cs_pin)
+    : mount_point(mount_point), cs_pin(cs_pin), spi(spi), card(nullptr), is_mounted(false) {}
 
 SD::~SD()
 {
-    deinit();
+    unmount();
 }
 
-esp_err_t SD::init()
+esp_err_t SD::mount(bool format_if_failed)
 {
-    if (initialized)
+    if (is_mounted)
         return ESP_OK;
 
-    if (!spi) {
-        ESP_LOGE(TAG, "SPI interface not provided");
-        return ESP_ERR_INVALID_ARG;
+    esp_vfs_fat_sdmmc_mount_config_t mount_config = {};
+    mount_config.format_if_mount_failed = format_if_failed;
+    mount_config.max_files = 5;
+    mount_config.allocation_unit_size = 16 * 1024;
+
+    sdmmc_host_t host = SDSPI_HOST_DEFAULT();
+    host.slot = (int)spi.get_host_id();
+
+    sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
+    slot_config.gpio_cs = (gpio_num_t)cs_pin;
+
+    slot_config.host_id = (spi_host_device_t)host.slot;
+
+    esp_err_t err = esp_vfs_fat_sdspi_mount(mount_point.c_str(), &host, &slot_config, &mount_config, &card);
+
+    if (err == ESP_OK)
+    {
+        is_mounted = true;
+        ESP_LOGI(TAG, "SD Card mounted at %s", mount_point.c_str());
     }
-
-    esp_err_t err = spi->init();
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize SPI: %s", esp_err_to_name(err));
-        return err;
-    }
-
-    uint8_t dummy[10] = {0xFF};
-    spi->transmitOnly(dummy, 10);
-
-    err = sendCommand(CMD0, 0, 0x95);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "CMD0 failed");
-        return err;
-    }
-
-    uint8_t response;
-    err = readResponse(&response, 1);
-    if (err != ESP_OK || response != 0x01) {
-        ESP_LOGE(TAG, "Card not in idle state");
-        return ESP_ERR_INVALID_RESPONSE;
-    }
-
-    uint32_t timeout = SD_INIT_TIMEOUT_MS;
-    while (timeout > 0) {
-        sendCommand(CMD55, 0, 0);
-        readResponse(&response, 1);
-
-        // Send ACMD41
-        err = sendCommand(ACMD41, 0x40000000, 0);
-        if (err == ESP_OK) {
-            err = readResponse(&response, 1);
-            if (response == 0x00) {
-                initialized = true;
-                ESP_LOGI(TAG, "SD card initialized successfully");
-                return ESP_OK;
-            }
-        }
-        timeout--;
-    }
-
-    ESP_LOGE(TAG, "SD card initialization timeout");
-    return ESP_ERR_TIMEOUT;
+    else
+        ESP_LOGE(TAG, "Failed to mount SD Card: %s", esp_err_to_name(err));
+    return err;
 }
 
-esp_err_t SD::deinit()
+esp_err_t SD::unmount()
 {
-    if (!initialized)
+    if (!is_mounted)
         return ESP_OK;
 
-    initialized = false;
-    ESP_LOGI(TAG, "SD card deinitialized");
+    esp_err_t err = esp_vfs_fat_sdcard_unmount(mount_point.c_str(), card);
+    if (err == ESP_OK)
+    {
+        is_mounted = false;
+        card = nullptr;
+        ESP_LOGI(TAG, "SD card unmounted");
+    }
+    else
+        ESP_LOGE(TAG, "Failed to unmount SD card");
+    return err;
+}
+
+esp_err_t SD::write_file(const char *path, const char *data)
+{
+    std::string full_path = mount_point + path;
+    FILE *f = fopen(full_path.c_str(), "w");
+    if (f == NULL)
+    {
+        ESP_LOGE(TAG, "Opened file was NULL");
+        return ESP_FAIL;
+    }
+
+    fprintf(f, "%s", data);
+    fclose(f);
     return ESP_OK;
 }
 
-esp_err_t SD::sendCommand(uint8_t cmd, uint32_t arg, uint8_t crc)
+std::string SD::read_file(const char *path)
 {
-    uint8_t buffer[6];
-    buffer[0] = 0x40 | cmd;
-    buffer[1] = (arg >> 24) & 0xFF;
-    buffer[2] = (arg >> 16) & 0xFF;
-    buffer[3] = (arg >> 8) & 0xFF;
-    buffer[4] = arg & 0xFF;
-    buffer[5] = crc | 0x01;
+    std::string full_path = mount_point + path;
+    FILE *f = fopen(full_path.c_str(), "r");
+    if (f == NULL)
+        return "";
 
-    return spi->transmitOnly(buffer, 6);
+    char line[128];
+    std::string result = "";
+    if (fgets(line, sizeof(line), f))
+    {
+        result = line;
+        size_t pos = result.find_last_of("\n");
+        if (pos != std::string::npos)
+            result.erase(pos);
+    }
+    fclose(f);
+    return result;
 }
 
-esp_err_t SD::readResponse(uint8_t *response, size_t len)
+void SD::print_info()
 {
-    uint8_t dummy = 0xFF;
-    for (int i = 0; i < 10; i++) {
-        esp_err_t err = spi->receiveOnly(&dummy, 1);
-        if (err != ESP_OK)
-            return err;
-
-        if ((dummy & 0x80) == 0) {
-            response[0] = dummy;
-            for (size_t j = 1; j < len; j++) {
-                spi->receiveOnly(&response[j], 1);
-            }
-            return ESP_OK;
-        }
+    if (is_mounted && card)
+    {
+        sdmmc_card_print_info(stdout, card);
     }
-
-    ESP_LOGE(TAG, "No response from SD card");
-    return ESP_ERR_TIMEOUT;
-}
-
-esp_err_t SD::waitForReady(uint32_t timeout_ms)
-{
-    uint8_t response;
-    for (uint32_t i = 0; i < timeout_ms; i++) {
-        esp_err_t err = spi->receiveOnly(&response, 1);
-        if (err == ESP_OK && response == 0xFF) {
-            return ESP_OK;
-        }
-        vTaskDelay(pdMS_TO_TICKS(1));
-    }
-    return ESP_ERR_TIMEOUT;
-}
-
-esp_err_t SD::readBlock(uint32_t block_addr, uint8_t *buffer, size_t len)
-{
-    if (!initialized) {
-        ESP_LOGE(TAG, "SD card not initialized");
-        return ESP_ERR_INVALID_STATE;
-    }
-
-    esp_err_t err = sendCommand(CMD17, block_addr, 0xFF);
-    if (err != ESP_OK)
-        return err;
-
-    uint8_t response;
-    err = readResponse(&response, 1);
-    if (err != ESP_OK || response != 0x00) {
-        ESP_LOGE(TAG, "Read failed: %02X", response);
-        return ESP_ERR_INVALID_RESPONSE;
-    }
-
-    if (waitForReady(1000) != ESP_OK) {
-        ESP_LOGE(TAG, "Data token timeout");
-        return ESP_ERR_TIMEOUT;
-    }
-
-    return spi->receiveOnly(buffer, len);
-}
-
-esp_err_t SD::writeBlock(uint32_t block_addr, const uint8_t *buffer, size_t len)
-{
-    if (!initialized) {
-        ESP_LOGE(TAG, "SD card not initialized");
-        return ESP_ERR_INVALID_STATE;
-    }
-
-    esp_err_t err = sendCommand(CMD24, block_addr, 0xFF);
-    if (err != ESP_OK)
-        return err;
-
-    uint8_t response;
-    err = readResponse(&response, 1);
-    if (err != ESP_OK || response != 0x00) {
-        ESP_LOGE(TAG, "Write failed: %02X", response);
-        return ESP_ERR_INVALID_RESPONSE;
-    }
-
-    uint8_t token = 0xFE;
-    spi->transmitOnly(&token, 1);
-    spi->transmitOnly(buffer, len);
-
-    uint8_t crc[2] = {0xFF, 0xFF};
-    spi->transmitOnly(crc, 2);
-
-    return waitForReady(1000);
 }
