@@ -4,4 +4,6 @@
 .vscode/launch.json
 .vscode/ipch
 
+sdkconfig.esp32dev
+
 .fake
