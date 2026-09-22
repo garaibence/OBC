@@ -48,6 +48,19 @@ extern "C"
         float x, y, z;
         float temp_bmp, pressure, altitude;
 
+
+        
+        float avg_pres;
+        bmp.readPressure(avg_pres);
+        for (size_t i = 1; i < 50; i++)
+        {
+            float temp;
+            bmp.readPressure(temp);
+            avg_pres = (avg_pres + temp) / 2.0f;
+            vTaskDelay(pdMS_TO_TICKS(100));
+        }
+        
+
         while (true)
         {
             if (imu.readAccelerometer(ax, ay, az) == ESP_OK)
@@ -63,27 +76,27 @@ extern "C"
                 printf(">gy:%f§°/s\n", gy);
                 printf(">gz:%f§°/s\n", gz);
             }
-
+            
             if (imu.readTemperatureC(temp_mpu) == ESP_OK)
                 printf(">temp_mpu:%f§°C\n", temp_mpu);
-
+            
             if (qmc.readMagneto(x, y, z) == ESP_OK)
             {
-                printf(">mag_x:%f§G\n", x);
-                printf(">mag_y:%f§G\n", y);
-                printf(">mag_z:%f§G\n", z);
+                printf(">mag_x:%f§µT\n", x);
+                printf(">mag_y:%f§µT\n", y);
+                printf(">mag_z:%f§µT\n", z);
             }
-
+            
             if (bmp.readTemperature(temp_bmp) == ESP_OK)
                 printf(">temp_bmp:%f§°C\n", temp_bmp);
 
             if (bmp.readPressure(pressure) == ESP_OK)
                 printf(">pressure:%f§Pa\n", pressure);
-
-            if (bmp.readAltitude(altitude) == ESP_OK)
+            
+            if (bmp.readAltitude(altitude, avg_pres) == ESP_OK)
                 printf(">altitude:%f§m\n", altitude);
 
-            vTaskDelay(pdMS_TO_TICKS(10));
+            vTaskDelay(pdMS_TO_TICKS(100));
         }
 
         i2c.deinit();
