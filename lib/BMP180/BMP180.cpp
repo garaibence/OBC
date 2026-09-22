@@ -14,15 +14,10 @@ esp_err_t BMP180::init()
     return readCalibration();
 }
 
-esp_err_t BMP180::whoami(uint8_t &id)
-{
-    return i2c.readRegister(addr, REG_ID, id);
-}
-
 esp_err_t BMP180::readCalibration()
 {
     uint8_t buf[22];
-    esp_err_t err = i2c.readRegisters(addr, 0xAA, buf, sizeof(buf));
+    esp_err_t err = i2c.readRegisters(addr, REG_CALIB, buf, sizeof(buf));
     if (err != ESP_OK)
         return err;
 
@@ -168,14 +163,14 @@ esp_err_t BMP180::readPressure(float &pressure_pa)
     return ESP_OK;
 }
 
-esp_err_t BMP180::readAltitude(float &alt, float seaLvlPres)
+esp_err_t BMP180::readAltitude(float &alt, float referencePres)
 {
     float pres;
     esp_err_t err = readPressure(pres);
     if (err != ESP_OK)
         return err;
 
-    alt = 44330.0f * (1.0f - powf(pres / seaLvlPres, 0.19029495f));
-
+    alt = 44330.0f * (1.0f - powf(pres / referencePres, 0.19029495f));
+    
     return ESP_OK;
 }

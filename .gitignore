@@ -1,14 +1,14 @@
-.vscode/
-/sdkconfig.esp32dev
-/sdkconfig.esp32dev.*
-
-.fake
-
 # PlatformIO generated files
+.pio
 .pio/
 .pioenvs/
 .piolibdeps/
 build/
+
+.vscode/
+/sdkconfig.esp32dev
+/sdkconfig.esp32dev.*
+.fake
 
 # ESP-IDF generated configuration and managed components
 managed_components/

@@ -1,0 +1,266 @@
+{
+   "widgets": [
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "gx",
+               "sourceNames": [
+                  "gx"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "gx",
+                  "_id": "data-serie-39",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "unit": "m/s²\r",
+               "type": "number"
+            },
+            {
+               "name": "gy",
+               "sourceNames": [
+                  "gy"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "gy",
+                  "_id": "data-serie-40",
+                  "stroke": "rgba(52,152,219,1)",
+                  "fill": "rgba(52,152,219,0.1)"
+               },
+               "unit": "m/s²\r",
+               "type": "number"
+            },
+            {
+               "name": "gz",
+               "sourceNames": [
+                  "gz"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "gz",
+                  "_id": "data-serie-41",
+                  "stroke": "rgba(46,204,113,1)",
+                  "fill": "rgba(46,204,113,0.1)"
+               },
+               "unit": "m/s²\r",
+               "type": "number"
+            }
+         ]
+      },
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "ax",
+               "sourceNames": [
+                  "ax"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "ax",
+                  "_id": "data-serie-42",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "unit": "m/s²\r",
+               "type": "number"
+            },
+            {
+               "name": "ay",
+               "sourceNames": [
+                  "ay"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "ay",
+                  "_id": "data-serie-43",
+                  "stroke": "rgba(52,152,219,1)",
+                  "fill": "rgba(52,152,219,0.1)"
+               },
+               "unit": "m/s²\r",
+               "type": "number"
+            },
+            {
+               "name": "az",
+               "sourceNames": [
+                  "az"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "az",
+                  "_id": "data-serie-44",
+                  "stroke": "rgba(46,204,113,1)",
+                  "fill": "rgba(46,204,113,0.1)"
+               },
+               "unit": "m/s²\r",
+               "type": "number"
+            }
+         ]
+      },
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "mag_x",
+               "sourceNames": [
+                  "mag_x"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "mag_x",
+                  "_id": "data-serie-53",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "unit": "µT\r",
+               "type": "number"
+            },
+            {
+               "name": "mag_y",
+               "sourceNames": [
+                  "mag_y"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "mag_y",
+                  "_id": "data-serie-54",
+                  "stroke": "rgba(52,152,219,1)",
+                  "fill": "rgba(52,152,219,0.1)"
+               },
+               "unit": "µT\r",
+               "type": "number"
+            },
+            {
+               "name": "mag_z",
+               "sourceNames": [
+                  "mag_z"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "mag_z",
+                  "_id": "data-serie-55",
+                  "stroke": "rgba(46,204,113,1)",
+                  "fill": "rgba(46,204,113,0.1)"
+               },
+               "unit": "µT\r",
+               "type": "number"
+            }
+         ]
+      },
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "temp_mpu",
+               "sourceNames": [
+                  "temp_mpu"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "temp_mpu",
+                  "_id": "data-serie-48",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "unit": "°C\r",
+               "type": "number"
+            },
+            {
+               "name": "temp_bmp",
+               "sourceNames": [
+                  "temp_bmp"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "temp_bmp",
+                  "_id": "data-serie-49",
+                  "stroke": "rgba(52,152,219,1)",
+                  "fill": "rgba(52,152,219,0.1)"
+               },
+               "unit": "°C\r",
+               "type": "number"
+            }
+         ]
+      },
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "pressure",
+               "sourceNames": [
+                  "pressure"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "pressure",
+                  "_id": "data-serie-50",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "unit": "Pa\r",
+               "type": "number"
+            }
+         ]
+      },
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "altitude",
+               "sourceNames": [
+                  "altitude"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "altitude",
+                  "_id": "data-serie-51",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "unit": "m\r",
+               "type": "number"
+            }
+         ]
+      }
+   ],
+   "viewDuration": "10"
+}

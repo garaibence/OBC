@@ -3,16 +3,14 @@
 
 esp_err_t MPU6050::init()
 {
-    uint8_t wake = 0x00;
-    esp_err_t err = i2c.writeRegister(addr, REG_PWR_MGMT_1, wake);
+    uint8_t reset = 0x80;
+    esp_err_t err = i2c.writeRegister(addr, REG_PWR_MGMT_1, reset);
     if (err != ESP_OK)
         return err;
-    return ESP_OK;
-}
+    vTaskDelay(pdMS_TO_TICKS(100));
 
-esp_err_t MPU6050::whoami(uint8_t &id)
-{
-    return i2c.readRegister(addr, REG_WHO_AM_I, id);
+    uint8_t pll_x = 0x01;
+    return i2c.writeRegister(addr, REG_PWR_MGMT_1, pll_x);
 }
 
 esp_err_t MPU6050::setDlpfBandwidth(DlpfBandwidth bw)

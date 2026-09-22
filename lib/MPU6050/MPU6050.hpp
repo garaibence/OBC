@@ -1,4 +1,5 @@
 #pragma once
+#include "I2CSensor.hpp"
 #include "I2CInterface.hpp"
 #include <cstdint>
 #include <esp_err.h>
@@ -30,14 +31,12 @@ enum class AccelRange : uint8_t
     RANGE_16G = 3 // +/- 16g
 };
 
-class MPU6050
+class MPU6050 : public I2CSensor
 {
 public:
-    explicit MPU6050(I2CInterface &i2c, uint8_t addr = 0x68) : i2c(i2c), addr(addr) {}
+    explicit MPU6050(I2CInterface &i2c, uint8_t addr = 0x68) : I2CSensor(i2c, addr, REG_ID) {}
 
-    esp_err_t init();
-
-    esp_err_t whoami(uint8_t &id);
+    esp_err_t init() override;
 
     esp_err_t setDlpfBandwidth(DlpfBandwidth bw);
     esp_err_t setGyroRange(GyroRange range);
@@ -58,11 +57,10 @@ private:
     esp_err_t readConfig(uint8_t &conf);
     esp_err_t writeConfig(uint8_t conf);
 
-    I2CInterface &i2c;
-    uint8_t addr;
-
     float accel_lsb_sensitivity = 16384.0f; // Default +/- 2g
     float gyro_lsb_sensitivity = 131.0f;    // Default +/- 250 °/s
+    
+    static constexpr uint8_t REG_ID = 0x75;
 
     static constexpr uint8_t REG_CONFIG = 0x1A;
     static constexpr uint8_t REG_GYRO_CONFIG = 0x1B;
@@ -71,7 +69,6 @@ private:
     static constexpr uint8_t REG_USER_CTRL = 0x6A;
 
     static constexpr uint8_t REG_PWR_MGMT_1 = 0x6B;
-    static constexpr uint8_t REG_WHO_AM_I = 0x75;
     static constexpr uint8_t REG_ACCEL_XOUT_H = 0x3B;
     static constexpr uint8_t REG_TEMP_OUT_H = 0x41;
     static constexpr uint8_t REG_GYRO_XOUT_H = 0x43;
