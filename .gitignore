@@ -1,4 +1,42 @@
-.pio
 .vscode/
-sdkconfig.esp32dev
+/sdkconfig.esp32dev
+/sdkconfig.esp32dev.*
+
 .fake
+
+# PlatformIO generated files
+.pio/
+.pioenvs/
+.piolibdeps/
+build/
+
+# ESP-IDF generated configuration and managed components
+managed_components/
+sdkconfig
+sdkconfig.old
+sdkconfig.*.old
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+
+# C/C++ compiler and linker artifacts
+*.o
+*.a
+*.so
+*.d
+*.elf
+*.bin
+*.map
+*.sym
+*.gcda
+*.gcno
+
+# IDE and operating-system files
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
