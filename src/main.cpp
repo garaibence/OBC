@@ -1,112 +1,123 @@
-#include "I2CInterface.hpp"
-#include "MPU6050.hpp"
-#include "BMP180.hpp"
-#include "QMC5883P.hpp"
-#include <esp_log.h>
-#include "SD.hpp"
+#include <cstring>
 
-#define PIN_NUM_MOSI GPIO_NUM_23
-#define PIN_NUM_MISO GPIO_NUM_19
-#define PIN_NUM_CLK GPIO_NUM_18
-#define PIN_NUM_CS GPIO_NUM_5
+#include <esp_log.h>
+#include <esp_wifi.h>
+#include <nvs_flash.h>
+
+#include "WiFiLink.hpp"
 
 static const char *TAG = "MAIN";
+
+// Build one board as 0 (rocket/ping initiator) and the other as 1
+// (launchpad/pong responder). Set each peer MAC to the other board's STA MAC.
+#define WIFI_LINK_TEST_ROLE 0
+#define WIFI_LINK_TEST_CHANNEL 1
+// rocket mac
+//static const uint8_t WIFI_LINK_PEER_MAC[6] = {0x78, 0x1c, 0x3c, 0x2c, 0x7a, 0x38};
+// launchpad mac
+static const uint8_t WIFI_LINK_PEER_MAC[6] = {0x6c, 0xc8, 0x40, 0x06, 0xab, 0xc4};
 
 extern "C"
 {
     void app_main()
     {
-        static const char *TAG = "MAIN";
-        ESP_LOGI(TAG, "starting");
-
-        I2CInterface i2c(I2C_NUM_0, GPIO_NUM_21, GPIO_NUM_22, 100000);
-        if (i2c.init() != ESP_OK)
+        esp_err_t err = nvs_flash_init();
+        if (err != ESP_OK)
         {
-            ESP_LOGE(TAG, "i2c init failed");
+            ESP_LOGE(TAG, "NVS initialization failed: %s", esp_err_to_name(err));
+            if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
+                err == ESP_ERR_NVS_NEW_VERSION_FOUND)
+            {
+                ESP_LOGE(TAG, "NVS needs repair; erase the NVS partition before retrying");
+            }
             return;
         }
 
-        MPU6050 imu(i2c, 0x68);
-        if (imu.init() != ESP_OK)
+        WiFiLink wifi_link(WIFI_LINK_PEER_MAC, WIFI_LINK_TEST_CHANNEL);
+        err = wifi_link.start();
+        if (err != ESP_OK)
         {
-            ESP_LOGE(TAG, "MPU6050 init failed");
-            return;
-        }
-        imu.setAccelRange(AccelRange::RANGE_16G);
-        imu.setDlpfBandwidth(DlpfBandwidth::BW_5HZ);
-        imu.setGyroRange(GyroRange::RANGE_1000_DEG);
-        imu.setI2CBypass(true);
-
-        QMC5883P qmc(i2c, 0x2C);
-        if (qmc.init() != ESP_OK)
-        {
-            ESP_LOGE(TAG, "QMC init failed");
+            ESP_LOGE(TAG, "WiFiLink start failed: %s", esp_err_to_name(err));
             return;
         }
 
-        BMP180 bmp(i2c, 0x77);
-        if (bmp.init() != ESP_OK)
+        uint8_t own_mac[ESP_NOW_ETH_ALEN];
+        err = esp_wifi_get_mac(WIFI_IF_STA, own_mac);
+        if (err != ESP_OK)
         {
-            ESP_LOGE(TAG, "BMP init failed");
+            ESP_LOGE(TAG, "Failed to read station MAC: %s", esp_err_to_name(err));
             return;
         }
-        bmp.setOversampling(Oversampling::OSS_3);
+        ESP_LOGI(TAG, "Station MAC: %02X:%02X:%02X:%02X:%02X:%02X",
+                 own_mac[0], own_mac[1], own_mac[2],
+                 own_mac[3], own_mac[4], own_mac[5]);
 
-        float ax, ay, az, gx, gy, gz, temp_mpu;
-        float x, y, z;
-        float temp_bmp, pressure, altitude;
-
-
-        
-        float avg_pres;
-        bmp.readPressure(avg_pres);
-        for (size_t i = 1; i < 50; i++)
-        {
-            float temp;
-            bmp.readPressure(temp);
-            avg_pres = (avg_pres + temp) / 2.0f;
-            vTaskDelay(pdMS_TO_TICKS(100));
-        }
-        
-
+#if WIFI_LINK_TEST_ROLE == 0
+        ESP_LOGI(TAG, "WiFiLink test: rocket role, sending PING");
         while (true)
         {
-            if (imu.readAccelerometer(ax, ay, az) == ESP_OK)
+            static const char ping[] = "PING";
+            err = wifi_link.send(ping, sizeof(ping) - 1, 1000);
+            if (err != ESP_OK)
             {
-                printf(">ax:%f§m/s²\n", ax);
-                printf(">ay:%f§m/s²\n", ay);
-                printf(">az:%f§m/s²\n", az);
+                ESP_LOGW(TAG, "PING send failed: %s", esp_err_to_name(err));
             }
-
-            if (imu.readGyroscope(gx, gy, gz) == ESP_OK)
+            else
             {
-                printf(">gx:%f§°/s\n", gx);
-                printf(">gy:%f§°/s\n", gy);
-                printf(">gz:%f§°/s\n", gz);
+                uint8_t response[WiFiLink::MAX_MESSAGE_SIZE];
+                size_t response_size = 0;
+                err = wifi_link.receive(response, sizeof(response), response_size, 2000);
+                if (err == ESP_OK &&
+                    response_size == 4 &&
+                    std::memcmp(response, "PONG", 4) == 0)
+                {
+                    ESP_LOGI(TAG, "Received PONG from launchpad");
+                }
+                else if (err == ESP_OK)
+                {
+                    ESP_LOGW(TAG, "Unexpected response (%u bytes)",
+                             static_cast<unsigned>(response_size));
+                }
+                else
+                {
+                    ESP_LOGW(TAG, "PONG receive failed: %s", esp_err_to_name(err));
+                }
             }
-            
-            if (imu.readTemperatureC(temp_mpu) == ESP_OK)
-                printf(">temp_mpu:%f§°C\n", temp_mpu);
-            
-            if (qmc.readMagneto(x, y, z) == ESP_OK)
-            {
-                printf(">mag_x:%f§µT\n", x);
-                printf(">mag_y:%f§µT\n", y);
-                printf(">mag_z:%f§µT\n", z);
-            }
-            
-            if (bmp.readTemperature(temp_bmp) == ESP_OK)
-                printf(">temp_bmp:%f§°C\n", temp_bmp);
-
-            if (bmp.readPressure(pressure) == ESP_OK)
-                printf(">pressure:%f§Pa\n", pressure);
-            
-            if (bmp.readAltitude(altitude, avg_pres) == ESP_OK)
-                printf(">altitude:%f§m\n", altitude);
-
-            vTaskDelay(pdMS_TO_TICKS(100));
+            vTaskDelay(pdMS_TO_TICKS(2000));
         }
+#elif WIFI_LINK_TEST_ROLE == 1
+        ESP_LOGI(TAG, "WiFiLink test: launchpad role, replying PONG");
+        while (true)
+        {
+            uint8_t request[WiFiLink::MAX_MESSAGE_SIZE];
+            size_t request_size = 0;
+            err = wifi_link.receive(request, sizeof(request), request_size, 5000);
+            if (err == ESP_ERR_TIMEOUT)
+            {
+                ESP_LOGI(TAG, "Waiting for PING");
+                continue;
+            }
+            if (err != ESP_OK)
+            {
+                ESP_LOGW(TAG, "Receive failed: %s", esp_err_to_name(err));
+                continue;
+            }
+            if (request_size != 4 || std::memcmp(request, "PING", 4) != 0)
+            {
+                ESP_LOGW(TAG, "Ignoring unexpected message (%u bytes)",
+                         static_cast<unsigned>(request_size));
+                continue;
+            }
 
-        i2c.deinit();
+            static const char pong[] = "PONG";
+            err = wifi_link.send(pong, sizeof(pong) - 1, 1000);
+            if (err != ESP_OK)
+                ESP_LOGW(TAG, "PONG send failed: %s", esp_err_to_name(err));
+            else
+                ESP_LOGI(TAG, "Received PING; sent PONG");
+        }
+#else
+#error "WIFI_LINK_TEST_ROLE must be 0 (rocket) or 1 (launchpad)"
+#endif
     }
 }
